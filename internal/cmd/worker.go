@@ -29,9 +29,16 @@ func WorkerCmd(ctx context.Context) *cobra.Command {
 
 			logger, _ := zap.NewDevelopment(zap.AddStacktrace(zapcore.FatalLevel))
 			defer logger.Sync()
-			workerFn(ctx, logger)
+
+			worker := workerFn(ctx, logger)
+
+			if err := worker.Start(); err != nil {
+				return err
+			}
 
 			<-ctx.Done()
+
+			worker.Stop()
 			return nil
 		},
 	}
