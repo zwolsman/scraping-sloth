@@ -1,2 +1,2 @@
 build:
-	@go build ./cmd/scraping-sloth
+	@go build ./cmd/sloth
