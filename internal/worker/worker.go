@@ -2,12 +2,13 @@ package worker
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
 
-type NewWorkerFun func(context.Context, *zap.Logger) Worker
+type NewWorkerFun func(context.Context, *zap.Logger, *pgxpool.Pool) Worker
 
 type Worker interface {
 	Start() error

@@ -3,14 +3,16 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/buger/jsonparser"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 )
 
 type ahWorker struct {
 	context.Context
+	db     *pgxpool.Pool
 	logger *zap.Logger
 }
 
@@ -43,22 +45,17 @@ var slugs = []string{
 
 func (a ahWorker) Start() error {
 	a.logger.Info("starting ah worker")
-
-	var errGroup errgroup.Group
-	startFn := func(slug string) func() error {
-		return func() error {
-			return a.start(slug)
+	for _, s := range slugs {
+		if err := a.scrape(s); err != nil {
+			return err
 		}
 	}
 
-	for _, s := range slugs {
-		errGroup.Go(startFn(s))
-	}
-
-	return errGroup.Wait()
+	a.logger.Info("finished processing all slugs", zap.Strings("slugs", slugs))
+	return nil
 }
 
-func (a ahWorker) start(slug string) error {
+func (a ahWorker) scrape(slug string) error {
 	url := fmt.Sprintf(urlFormat, 1, pageSize, slug)
 	a.logger.Debug("fetching total of pages", zap.String("url", url))
 	data, err := get(url)
@@ -87,9 +84,14 @@ func (a ahWorker) start(slug string) error {
 
 		err = a.parseResponse(data)
 		if err != nil {
+			if !errors.Is(err, context.Canceled) {
+				a.logger.Error("failed parsing response", zap.Error(err), zap.ByteString("payload", data))
+			}
 			return err
 		}
 	}
+
+	a.logger.Info("finished processing slug", zap.String("slug", slug), zap.Int("totalPages", pages))
 	return nil
 }
 
@@ -125,11 +127,17 @@ func (a ahWorker) parseResponse(data []byte) error {
 	for _, c := range p.Cards {
 		for _, p := range c.Products {
 			price := p.Price.Now
-			ids := p.Gtins
+			//a.logger.Debug("found product info", zap.String("title", p.Title), zap.Float64("price", price), zap.Ints("ids", p.Gtins))
 
-			a.logger.Info("found product info", zap.String("title", p.Title), zap.Float64("price", price), zap.Ints("ids", ids))
+			for _, gtin := range p.Gtins {
+				_, err := a.db.Exec(a.Context, "INSERT INTO prices(gtin, title, shop, price) VALUES($1, $2, 'AH', $3) ON CONFLICT DO NOTHING", gtin, p.Title, price)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -146,9 +154,10 @@ func (a ahWorker) Stop() {
 	a.logger.Info("stopping ah worker")
 }
 
-func NewAlbertHeijnWorker(ctx context.Context, logger *zap.Logger) Worker {
+func NewAlbertHeijnWorker(ctx context.Context, logger *zap.Logger, db *pgxpool.Pool) Worker {
 	return &ahWorker{
 		Context: ctx,
 		logger:  logger,
+		db:      db,
 	}
 }
