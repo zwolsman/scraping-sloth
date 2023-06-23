@@ -17,7 +17,6 @@ type ahWorker struct {
 }
 
 const pageSize = 100
-const urlFormat = "https://www.ah.nl/zoeken/api/products/search?page=%d&size=%d&taxonomySlug=%s"
 
 var slugs = []string{
 	"aardappel-groente-fruit",
@@ -56,7 +55,7 @@ func (a ahWorker) Start() error {
 }
 
 func (a ahWorker) scrape(slug string) error {
-	url := fmt.Sprintf(urlFormat, 1, pageSize, slug)
+	url := fmt.Sprintf(ahUrlFormat, 1, pageSize, slug)
 	a.logger.Debug("fetching total of pages", zap.String("url", url))
 	data, err := get(url)
 
@@ -74,7 +73,7 @@ func (a ahWorker) scrape(slug string) error {
 	}
 
 	for i := 2; i < pages; i++ {
-		url = fmt.Sprintf(urlFormat, i, pageSize, slug)
+		url = fmt.Sprintf(ahUrlFormat, i, pageSize, slug)
 		a.logger.Debug("fetching new page", zap.String("url", url))
 
 		data, err = get(url)

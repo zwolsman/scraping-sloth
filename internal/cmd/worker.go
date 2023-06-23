@@ -13,7 +13,8 @@ import (
 )
 
 var jobs = map[string]worker.NewWorkerFun{
-	"ah": worker.NewAlbertHeijnWorker,
+	"ah":    worker.NewAlbertHeijnWorker,
+	"jumbo": worker.NewJumboWorker,
 }
 
 func WorkerCmd(ctx context.Context) *cobra.Command {

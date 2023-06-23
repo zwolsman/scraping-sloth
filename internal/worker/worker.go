@@ -8,6 +8,11 @@ import (
 	"net/http"
 )
 
+const (
+	ahUrlFormat = "https://www.ah.nl/zoeken/api/products/search?page=%d&size=%d&taxonomySlug=%s"
+	jumboUrl    = "https://www.jumbo.com/api/graphql"
+)
+
 type NewWorkerFun func(context.Context, *zap.Logger, *pgxpool.Pool) Worker
 
 type Worker interface {
