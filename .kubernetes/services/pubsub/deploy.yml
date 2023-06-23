@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pubsub
+  namespace: sloth
+spec:
+  selector:
+    matchLabels:
+      app: pubsub
+  template:
+    metadata:
+      labels:
+        app: pubsub
+    spec:
+      containers:
+        - name: pubsub
+          image: knarz/pubsub-emulator:latest
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pubsub
+  namespace: sloth
+spec:
+  selector:
+    app: pubsub
+  type: NodePort
+  ports:
+    - port: 8085
