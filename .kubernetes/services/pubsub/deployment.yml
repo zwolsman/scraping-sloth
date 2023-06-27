@@ -14,8 +14,13 @@ spec:
     spec:
       containers:
         - name: pubsub
-          image: knarz/pubsub-emulator:latest
+          image: messagebird/gcloud-pubsub-emulator:latest
+          ports:
+            - containerPort: 8681
           imagePullPolicy: IfNotPresent
+          env:
+            - name: PUBSUB_PROJECT1
+              value: sloth,jobs-ah:jobs-ah-subscription,jobs-jumbo:jobs-jumbo-subscription
 ---
 apiVersion: v1
 kind: Service
@@ -27,4 +32,4 @@ spec:
     app: pubsub
   type: NodePort
   ports:
-    - port: 8085
+    - port: 8681

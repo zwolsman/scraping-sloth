@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: sloth
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+         - name: app
+           image: localhost:5000/sloth:latest
+           imagePullPolicy: Always
+           args: [ "worker", "--strategy=$(STRATEGY)" ]
+           env:
+             - name: DATABASE_URL
+               value: "postgresql://postgres:postgres@postgres:5432/postgres"
+             - name: PUBSUB_EMULATOR_HOST
+               value: "pubsub:8085"

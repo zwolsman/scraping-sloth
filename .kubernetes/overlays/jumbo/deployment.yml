@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: sloth
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - name: STRATEGY
+              value: "jumbo"

@@ -1,0 +1,12 @@
+resources:
+  - ../../services/distributor
+  - ../../services/worker
+
+patches:
+  - path: deployment.yml
+  - path: cronjob.yml
+
+commonLabels:
+  strategy: ah
+
+namePrefix: ah-

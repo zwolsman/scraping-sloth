@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	common_pubsub "github.com/zwolsman/scraping-sloth/internal/common/pubsub"
 	"github.com/zwolsman/scraping-sloth/internal/strategies"
@@ -14,29 +13,22 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"log"
-	"os"
 )
 
-var workers = map[string]strategies.NewWorkerFun{
-	"ah":    ah.NewWorker,
-	"jumbo": jumbo.NewWorker,
+var distributors = map[string]strategies.NewDistributorFunc{
+	"ah":    ah.NewDistributor,
+	"jumbo": jumbo.NewDistributor,
 }
 
-func WorkerCmd(ctx context.Context) *cobra.Command {
+func DistributorCmd(ctx context.Context) *cobra.Command {
 	var strategy string
 
 	cmd := &cobra.Command{
-		Use:   "worker",
+		Use:   "distributor",
 		Args:  cobra.ExactArgs(0),
-		Short: "Execute jobs",
+		Short: "Distribute jobs for the workers to consume",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := pgxpool.New(cmd.Context(), os.Getenv("DATABASE_URL"))
-
-			if err != nil {
-				return fmt.Errorf("unable to connect to database: %w", err)
-			}
-
-			workerFn, ok := workers[strategy]
+			distributorFn, ok := distributors[strategy]
 			if !ok {
 				return fmt.Errorf("invalid strategy: %s", strategy)
 			}
@@ -49,11 +41,10 @@ func WorkerCmd(ctx context.Context) *cobra.Command {
 				log.Fatal(err)
 			}
 
-			subs := common_pubsub.NewSubscriptionFactory(client, logger)
+			factory := common_pubsub.NewPublisherFactory(client, logger)
+			distributor := distributorFn(ctx, logger, factory)
 
-			worker := workerFn(ctx, logger, db, subs)
-
-			if err := worker.Start(); err != nil {
+			if err := distributor.Start(); err != nil {
 				if errors.Is(err, context.Canceled) {
 					return nil
 				}
@@ -63,12 +54,12 @@ func WorkerCmd(ctx context.Context) *cobra.Command {
 
 			<-ctx.Done()
 
-			worker.Stop()
+			distributor.Stop()
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&strategy, "strategy", "", "The strategy to process jobs for")
+	cmd.Flags().StringVar(&strategy, "strategy", "", "The strategy to apply for distributing jobs")
 
 	return cmd
 }

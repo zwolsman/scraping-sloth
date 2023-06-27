@@ -12,6 +12,7 @@ func Execute(ctx context.Context) int {
 	}
 
 	rootCmd.AddCommand(WorkerCmd(ctx))
+	rootCmd.AddCommand(DistributorCmd(ctx))
 
 	if err := rootCmd.Execute(); err != nil {
 		return 1

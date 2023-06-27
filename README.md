@@ -2,10 +2,20 @@
 
 Scraping supermarket websites for pricing information
 
-## Worker
+![diagram](./diagram.png "Diagram")
 
-Execute jobs and save results to the database. This should be executed once every day.
+## Distributor
+
+Generate jobs that need to be executed by the _worker_. Each strategy has a specific topic/subscription.
 
 ```bash
-$ sloth worker --job ah
+$ sloth distributor --strategy ah
+```
+
+## Worker
+
+Execute jobs and save information to the database.
+
+```bash
+$ sloth worker --strategy ah
 ```

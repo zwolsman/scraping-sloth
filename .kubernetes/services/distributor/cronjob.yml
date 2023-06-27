@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: distributor
+  namespace: sloth
+spec:
+  schedule: "0 12 * * *" #each day at 12
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: distributor
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: app
+              image: localhost:5000/sloth:latest
+              imagePullPolicy: Always
+              args: ["distributor", "--strategy=$(STRATEGY)"]
+              env:
+                - name: PUBSUB_EMULATOR_HOST
+                  value: "pubsub:8085"
