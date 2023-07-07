@@ -22,6 +22,11 @@ func createRequest(ctx context.Context, offset int, payload []byte) (*http.Reque
 		return nil, err
 	}
 
+	offset -= pageSize
+	if offset < 0 {
+		offset = 0
+	}
+
 	req.Header.Add("Origin", "https://www.jumbo.com")
 	req.Header.Add("Referer", fmt.Sprintf("https://www.jumbo.com/producten/?offSet=%d", offset))
 	req.Header.Add("Content-Type", "application/json")

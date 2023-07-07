@@ -48,6 +48,8 @@ func (w *worker) Handle(ctx context.Context, raw []byte) error {
 		return err
 	}
 
+	w.logger.Info("processed message", zap.ByteString("payload", raw))
+
 	return nil
 }
 
@@ -82,6 +84,7 @@ func (w *worker) process(data []byte) error {
 		return err
 	}
 
+	var total int64
 	for _, product := range p.Data.SearchProducts.Products {
 		price := float64(product.Prices.Price)
 		if promo := product.Prices.PromoPrice; promo != nil {
@@ -91,11 +94,15 @@ func (w *worker) process(data []byte) error {
 		//price is in cents but the data is stored as eur
 		price /= 100
 
-		_, err := w.db.Exec(w, "INSERT INTO prices(gtin, title, shop, price) VALUES($1, $2, 'JUMBO', $3) ON CONFLICT DO NOTHING", product.Ean, product.Title, price)
+		n, err := w.db.Exec(w, "INSERT INTO prices(gtin, title, shop, price) VALUES($1, $2, 'JUMBO', $3) ON CONFLICT DO NOTHING", product.Ean, product.Title, price)
 		if err != nil {
 			return err
 		}
+
+		total += n.RowsAffected()
 	}
+
+	w.logger.Debug("saved products", zap.Int64("total", total))
 
 	return nil
 }
